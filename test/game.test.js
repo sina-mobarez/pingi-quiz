@@ -2,12 +2,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { RoomManager, GameError, COUNTDOWN_MS, REVEAL_MS, HOST_GRACE_MS } = require('../game');
 
+const q = (id, category, difficulty, extra = {}) => ({
+  id, category, difficulty, question: `q-${id}`, answer: `right-${id}`,
+  distractors: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'].map(w => `${w}-${id}`), ...extra,
+});
 const bank = [
-  { id: 'e1', category: 'Programming', difficulty: 'easy', question: 'q1', options: ['a', 'b', 'c', 'd'], answer: 0 },
-  { id: 'e2', category: 'Programming', difficulty: 'easy', question: 'q2', options: ['a', 'b', 'c', 'd'], answer: 1 },
-  { id: 'm1', category: 'Programming', difficulty: 'medium', question: 'q3', options: ['a', 'b', 'c', 'd'], answer: 2, explanation: 'x' },
-  { id: 'h1', category: 'Programming', difficulty: 'hard', question: 'q4', options: ['a', 'b', 'c', 'd'], answer: 3 },
-  { id: 'o1', category: 'Other', difficulty: 'easy', question: 'q5', options: ['a', 'b'], answer: 0 },
+  q('e1', 'Programming', 'easy'),
+  q('e2', 'Programming', 'easy'),
+  q('m1', 'Programming', 'medium', { explanation: 'x' }),
+  q('h1', 'Programming', 'hard'),
+  q('o1', 'Other', 'easy'),
 ];
 
 // rng that always returns 0 -> deterministic shuffles
@@ -43,16 +47,17 @@ test('createRoom validates input', () => {
   assert.throws(() => m.createRoom(opts({ nickname: '  ' }), 0), GameError);
   assert.throws(() => m.createRoom(opts({ category: 'Nope' }), 0), GameError);
   assert.throws(() => m.createRoom(opts({ difficulty: 'insane' }), 0), GameError);
-  assert.throws(() => m.createRoom(opts({ category: 'Other', difficulty: 'hard' }), 0), /No questions/);
+  assert.throws(() => m.createRoom(opts({ category: 'Other', difficulty: 'hard' }), 0), /سؤالی وجود ندارد/);
+  assert.throws(() => m.createRoom(opts({ optionCount: 5 }), 0), /۴، ۶ یا ۸/);
 });
 
 test('join rules: unique names, unknown room, closed after start', () => {
   const ctx = setup();
   const { m, code } = ctx;
-  assert.throws(() => m.joinRoom(code, 'bob', 0), /taken/);
+  assert.throws(() => m.joinRoom(code, 'bob', 0), /گرفته شده/);
   assert.throws(() => m.joinRoom('ZZZZ', 'Al', 0), e => e.status === 404);
   startRace(ctx);
-  assert.throws(() => m.joinRoom(code, 'Late', 0), /already started/);
+  assert.throws(() => m.joinRoom(code, 'Late', 0), /شروع شده/);
 });
 
 test('only host can start', () => {
@@ -73,8 +78,8 @@ test('mixed difficulty draws from all levels of the category', () => {
 test('options are shuffled but answer index stays correct', () => {
   const m = new RoomManager(bank, { rng: () => 0.99 });
   const { code } = m.createRoom(opts({ difficulty: 'hard' }), 0);
-  const q = m._room(code).questions[0];
-  assert.equal(q.options[q.answer], 'd');
+  const picked = m._room(code).questions[0];
+  assert.equal(picked.options[picked.answer], 'right-h1');
 });
 
 test('countdown then question; correct answer hidden during question', () => {
@@ -121,10 +126,10 @@ test('one answer per question, unknown player and late answers rejected', () => 
   const { m, code, host } = ctx;
   const t = startRace(ctx);
   m.answer(code, host, 0, t);
-  assert.throws(() => m.answer(code, host, 1, t), /already answered/);
+  assert.throws(() => m.answer(code, host, 1, t), /قبلاً پاسخ/);
   assert.throws(() => m.answer(code, 'nobody', 0, t), e => e.status === 403);
-  assert.throws(() => m.answer(code, ctx.p2, 9, t), /Invalid option/);
-  assert.throws(() => m.answer(code, ctx.p2, 0, t + 10_001), /Time is up/);
+  assert.throws(() => m.answer(code, ctx.p2, 9, t), /نامعتبر/);
+  assert.throws(() => m.answer(code, ctx.p2, 0, t + 10_001), /وقت تمام شد/);
 });
 
 test('timeout moves to reveal, then next question, then final', () => {
@@ -194,7 +199,7 @@ test('restart returns to countdown with scores reset; host only, final only', ()
   const ctx = setup({ count: 1 });
   const { m, code, host, p2 } = ctx;
   let t = startRace(ctx);
-  assert.throws(() => m.restart(code, host, t), /finished/);
+  assert.throws(() => m.restart(code, host, t), /تمام نشده/);
   m.answer(code, host, correctIndex(m, code), t);
   m.answer(code, p2, correctIndex(m, code), t);
   t += REVEAL_MS; m.tick(t);
@@ -240,4 +245,55 @@ test('mixed category is balanced across categories', () => {
   const { code } = m.createRoom(opts({ category: 'mixed', difficulty: 'easy', count: 2 }), 0);
   const cats = m._room(code).questions.map(q => q.category).sort();
   assert.deepEqual(cats, ['Other', 'Programming']);
+});
+
+test('every question has exactly the chosen number of unique options and one correct answer', () => {
+  for (const optionCount of [4, 6, 8]) {
+    for (let seed = 0; seed < 20; seed++) {
+      let x = seed + 1;
+      const m = new RoomManager(bank, { rng: () => ((x = (x * 16807) % 2147483647) / 2147483647) });
+      const { code } = m.createRoom(opts({ category: 'mixed', difficulty: 'mixed', count: 10, optionCount }), 0);
+      for (const picked of m._room(code).questions) {
+        assert.equal(picked.options.length, optionCount);
+        assert.equal(new Set(picked.options).size, optionCount);
+        assert.equal(picked.options.filter(o => o.startsWith('right-')).length, 1);
+        assert.equal(picked.options[picked.answer], `right-${picked.id}`);
+      }
+    }
+  }
+});
+
+test('option count defaults to 4, is exposed in settings and accepted as a string', () => {
+  const m = mgr();
+  const a = m.createRoom(opts(), 0);
+  assert.equal(m.publicState(a.code, a.playerId, 0).settings.optionCount, 4);
+  const b = m.createRoom(opts({ optionCount: '8' }), 0);
+  assert.equal(m._room(b.code).questions[0].options.length, 8);
+});
+
+test('fewer options keep the strongest distractors', () => {
+  const m = new RoomManager(bank, { rng: () => 0.5 });
+  const { code } = m.createRoom(opts({ difficulty: 'hard', optionCount: 4 }), 0);
+  const picked = m._room(code).questions[0];
+  assert.ok(picked.options.includes('w1-h1') && picked.options.includes('w2-h1'));
+});
+
+test('options are answered with any index up to the option count', () => {
+  const ctx = setup({ optionCount: 8 });
+  const { m, code, host, p2 } = ctx;
+  const t = startRace(ctx);
+  m.answer(code, host, 7, t);
+  assert.throws(() => m.answer(code, p2, 8, t), /نامعتبر/);
+});
+
+test('play again prefers questions the room has not seen yet', () => {
+  const big = Array.from({ length: 6 }, (_, i) => q(`b${i}`, 'Big', 'easy'));
+  let x = 7;
+  const m = new RoomManager(big, { rng: () => ((x = (x * 16807) % 2147483647) / 2147483647) });
+  const { code, playerId } = m.createRoom(opts({ category: 'Big', count: 3 }), 0);
+  const first = m._room(code).questions.map(p => p.id);
+  m._room(code).phase = 'final';
+  m.restart(code, playerId, 0);
+  const second = m._room(code).questions.map(p => p.id);
+  assert.equal(new Set([...first, ...second]).size, 6);
 });

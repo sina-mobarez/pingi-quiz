@@ -1,11 +1,11 @@
 // Pure in-memory game logic. No I/O: every time-dependent call takes `now` (ms).
 const crypto = require('node:crypto');
+const { DIFFICULTIES, OPTION_COUNTS, buildOptions } = require('./questions');
 
 const COUNTDOWN_MS = 3000;
 const REVEAL_MS = 4000;
 const HOST_GRACE_MS = 5000;
 const IDLE_ROOM_MS = 30 * 60_000;
-const DIFFICULTIES = ['easy', 'medium', 'hard'];
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O to avoid confusion with 1/0
 
 class GameError extends Error {
@@ -31,19 +31,23 @@ class RoomManager {
     return [...map].map(([name, counts]) => ({ name, counts }));
   }
 
-  createRoom({ nickname, category, difficulty, count, seconds }, now) {
+  createRoom({ nickname, category, difficulty, count, seconds, optionCount = 4 }, now) {
     const name = cleanName(nickname);
-    if (category !== 'mixed' && !this.bank.some(q => q.category === category)) throw new GameError('Unknown category');
-    if (difficulty !== 'mixed' && !DIFFICULTIES.includes(difficulty)) throw new GameError('Unknown difficulty');
+    if (category !== 'mixed' && !this.bank.some(q => q.category === category)) throw new GameError('این دسته وجود ندارد');
+    if (difficulty !== 'mixed' && !DIFFICULTIES.includes(difficulty)) throw new GameError('سطح سختی نامعتبر است');
     count = clampInt(count, 1, 50, 10);
     seconds = clampInt(seconds, 5, 120, 20);
-    const settings = { category, difficulty, count, seconds };
+    optionCount = Number(optionCount);
+    if (!OPTION_COUNTS.includes(optionCount)) throw new GameError('تعداد گزینه‌ها باید ۴، ۶ یا ۸ باشد');
+    const settings = { category, difficulty, count, seconds, optionCount };
+    const seen = new Set();
     const room = {
       code: this._newCode(),
       settings,
       hostId: null,
       players: new Map(),
-      questions: this._pickQuestions(settings),
+      seen,
+      questions: this._pickQuestions(settings, seen),
       index: -1,
       phase: 'lobby',
       phaseEndsAt: null,
@@ -60,9 +64,9 @@ class RoomManager {
   joinRoom(code, nickname, now) {
     const room = this._getRoom(code);
     const name = cleanName(nickname);
-    if (room.phase !== 'lobby') throw new GameError('This race has already started', 409);
+    if (room.phase !== 'lobby') throw new GameError('این مسابقه شروع شده است', 409);
     for (const p of room.players.values()) {
-      if (p.name.toLowerCase() === name.toLowerCase()) throw new GameError('That nickname is taken in this room', 409);
+      if (p.name.toLowerCase() === name.toLowerCase()) throw new GameError('این نام در این اتاق گرفته شده است', 409);
     }
     return { playerId: this._addPlayer(room, name, now).id };
   }
@@ -70,15 +74,15 @@ class RoomManager {
   start(code, playerId, now) {
     const room = this._getRoom(code);
     this._requireHost(room, playerId);
-    if (room.phase !== 'lobby') throw new GameError('The race has already started', 409);
+    if (room.phase !== 'lobby') throw new GameError('مسابقه از قبل شروع شده است', 409);
     this._beginCountdown(room, now);
   }
 
   restart(code, playerId, now) {
     const room = this._getRoom(code);
     this._requireHost(room, playerId);
-    if (room.phase !== 'final') throw new GameError('The race has not finished yet', 409);
-    room.questions = this._pickQuestions(room.settings);
+    if (room.phase !== 'final') throw new GameError('مسابقه هنوز تمام نشده است', 409);
+    room.questions = this._pickQuestions(room.settings, room.seen);
     for (const p of room.players.values()) Object.assign(p, { score: 0, correctMs: 0, correctCount: 0, last: null });
     this._beginCountdown(room, now);
   }
@@ -86,11 +90,11 @@ class RoomManager {
   answer(code, playerId, option, now) {
     const room = this._getRoom(code);
     const player = this._requirePlayer(room, playerId);
-    if (room.phase !== 'question') throw new GameError('Answers are not being accepted right now', 409);
-    if (now > room.phaseEndsAt) throw new GameError('Time is up', 409);
-    if (room.answers.has(playerId)) throw new GameError('You already answered', 409);
+    if (room.phase !== 'question') throw new GameError('الان زمان پاسخ دادن نیست', 409);
+    if (now > room.phaseEndsAt) throw new GameError('وقت تمام شد', 409);
+    if (room.answers.has(playerId)) throw new GameError('شما قبلاً پاسخ داده‌اید', 409);
     const q = room.questions[room.index];
-    if (!Number.isInteger(option) || option < 0 || option >= q.options.length) throw new GameError('Invalid option');
+    if (!Number.isInteger(option) || option < 0 || option >= q.options.length) throw new GameError('گزینه‌ی نامعتبر');
 
     const correct = option === q.answer;
     const limit = room.settings.seconds * 1000;
@@ -228,13 +232,20 @@ class RoomManager {
     return player;
   }
 
-  _pickQuestions({ category, difficulty, count }) {
+  // Questions this room has not played yet come first, so "play again" brings new ones;
+  // once the pool runs out the room starts over with everything.
+  _pickQuestions({ category, difficulty, count, optionCount }, seen) {
     const pool = this.bank.filter(q =>
       (category === 'mixed' || q.category === category) && (difficulty === 'mixed' || q.difficulty === difficulty));
-    if (pool.length === 0) throw new GameError('No questions for that category and difficulty');
+    if (pool.length === 0) throw new GameError('برای این دسته و سطح سختی سؤالی وجود ندارد');
+    let fresh = pool.filter(q => !seen.has(q.id));
+    if (fresh.length < Math.min(count, pool.length)) {
+      for (const q of pool) seen.delete(q.id);
+      fresh = pool;
+    }
     // Take from each category in turn so a big category doesn't dominate a mixed race.
     const byCategory = new Map();
-    for (const q of this._shuffle(pool)) {
+    for (const q of this._shuffle(fresh)) {
       if (!byCategory.has(q.category)) byCategory.set(q.category, []);
       byCategory.get(q.category).push(q);
     }
@@ -243,10 +254,8 @@ class RoomManager {
     while (picked.length < count && queues.some(qs => qs.length)) {
       for (const qs of queues) if (qs.length && picked.length < count) picked.push(qs.shift());
     }
-    return this._shuffle(picked).map(q => {
-      const order = this._shuffle(q.options.map((_, i) => i));
-      return { ...q, options: order.map(i => q.options[i]), answer: order.indexOf(q.answer) };
-    });
+    for (const q of picked) seen.add(q.id);
+    return this._shuffle(picked).map(q => ({ ...q, ...buildOptions(q, optionCount, a => this._shuffle(a)) }));
   }
 
   _shuffle(arr) {
@@ -268,19 +277,19 @@ class RoomManager {
 
   _getRoom(code) {
     const room = this.rooms.get(String(code || '').toUpperCase());
-    if (!room) throw new GameError('Room not found', 404);
+    if (!room) throw new GameError('اتاق پیدا نشد', 404);
     return room;
   }
 
   _requirePlayer(room, playerId) {
     const p = room.players.get(playerId);
-    if (!p) throw new GameError('You are not in this room', 403);
+    if (!p) throw new GameError('شما عضو این اتاق نیستید', 403);
     return p;
   }
 
   _requireHost(room, playerId) {
     this._requirePlayer(room, playerId);
-    if (room.hostId !== playerId) throw new GameError('Only the host can do that', 403);
+    if (room.hostId !== playerId) throw new GameError('فقط میزبان می‌تواند این کار را انجام دهد', 403);
   }
 }
 
@@ -299,7 +308,7 @@ function ranked(room) {
 
 function cleanName(name) {
   const n = String(name || '').trim().slice(0, 20);
-  if (!n) throw new GameError('Please enter a nickname');
+  if (!n) throw new GameError('لطفاً یک نام مستعار وارد کنید');
   return n;
 }
 

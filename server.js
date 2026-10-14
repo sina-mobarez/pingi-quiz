@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { RoomManager, GameError } = require('./game');
+const { loadQuestions, OPTION_COUNTS } = require('./questions');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -13,25 +14,6 @@ const game = new RoomManager(questions);
 
 // room code -> Set<{ playerId, res }>
 const streams = new Map();
-
-// Every *.json file in questions/ is an array of questions; fail fast on bad entries.
-function loadQuestions(dir) {
-  const all = [];
-  const ids = new Set();
-  for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort()) {
-    for (const q of JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'))) {
-      const where = `${file}: ${q.id}`;
-      if (!q.id || ids.has(q.id)) throw new Error(`${where}: missing or duplicate id`);
-      if (!q.category || !q.question) throw new Error(`${where}: missing category or question`);
-      if (!['easy', 'medium', 'hard'].includes(q.difficulty)) throw new Error(`${where}: bad difficulty`);
-      if (!Array.isArray(q.options) || q.options.length !== 4) throw new Error(`${where}: needs exactly 4 options`);
-      if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer > 3) throw new Error(`${where}: bad answer index`);
-      ids.add(q.id);
-      all.push(q);
-    }
-  }
-  return all;
-}
 
 function lanUrls() {
   // Skip virtual interfaces (Docker, VMs) that other devices can't reach.
@@ -62,13 +44,13 @@ function readBody(req) {
     req.setEncoding('utf8');
     req.on('data', chunk => {
       data += chunk;
-      if (data.length > 10_000) reject(new GameError('Request too large', 413));
+      if (data.length > 10_000) reject(new GameError('درخواست بیش از حد بزرگ است', 413));
     });
     req.on('end', () => {
       try {
         resolve(data ? JSON.parse(data) : {});
       } catch {
-        reject(new GameError('Invalid JSON'));
+        reject(new GameError('داده‌ی ارسالی نامعتبر است'));
       }
     });
     req.on('error', reject);
@@ -76,7 +58,7 @@ function readBody(req) {
 }
 
 function openStream(req, res, code, playerId) {
-  if (!game.hasPlayer(code, playerId)) return sendJson(res, 404, { error: 'Room or player not found' });
+  if (!game.hasPlayer(code, playerId)) return sendJson(res, 404, { error: 'اتاق یا بازیکن پیدا نشد' });
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -113,7 +95,7 @@ async function handle(req, res) {
     return fs.createReadStream(indexHtml).pipe(res);
   }
   if (req.method === 'GET' && url.pathname === '/api/info') {
-    return sendJson(res, 200, { categories: game.categories(), lanUrls: lanUrls() });
+    return sendJson(res, 200, { categories: game.categories(), optionCounts: OPTION_COUNTS, lanUrls: lanUrls() });
   }
   if (req.method === 'POST' && url.pathname === '/api/rooms') {
     const body = await readBody(req);
@@ -135,19 +117,19 @@ async function handle(req, res) {
       if (action === 'start') game.start(code, body.playerId, now);
       else if (action === 'answer') game.answer(code, body.playerId, body.option, now);
       else if (action === 'restart') game.restart(code, body.playerId, now);
-      else return sendJson(res, 404, { error: 'Not found' });
+      else return sendJson(res, 404, { error: 'پیدا نشد' });
       broadcast(code);
       return sendJson(res, 200, { ok: true });
     }
   }
-  sendJson(res, 404, { error: 'Not found' });
+  sendJson(res, 404, { error: 'پیدا نشد' });
 }
 
 const server = http.createServer((req, res) => {
   handle(req, res).catch(err => {
     if (err instanceof GameError) return sendJson(res, err.status, { error: err.message });
     console.error(err);
-    sendJson(res, 500, { error: 'Server error' });
+    sendJson(res, 500, { error: 'خطای سرور' });
   });
 });
 

@@ -1,10 +1,11 @@
 {
   "name": "quiz-race",
   "version": "1.0.0",
-  "description": "LAN multiplayer timed quiz race — zero dependencies",
+  "description": "LAN multiplayer timed quiz race \u2014 zero dependencies",
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "check-questions": "node scripts/check-questions.js"
   }
 }

@@ -1,9 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quiz Race</title>
+<title>مسابقه‌ی دانستنی‌ها</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Loaded without blocking: on a LAN with no internet the page falls back to local fonts. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" media="print" onload="this.media='all'">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏁</text></svg>">
 <style>
   :root {
@@ -11,28 +15,31 @@
     --text: #e6edf3; --muted: #8b949e; --accent: #7ee787; --accent-ink: #0d1117;
     --warn: #f0b72f; --bad: #ff7b72; --blue: #79c0ff; --purple: #d2a8ff;
     --mono: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Vazirmatn", "Noto Sans Arabic", Tahoma, sans-serif;
+    --sans: "Vazirmatn", "Vazir", "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font: 16px/1.7 var(--sans); }
+  .num { font-variant-numeric: tabular-nums; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
   button, input, select { font: inherit; color: inherit; }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  .logo { font: 700 22px var(--mono); letter-spacing: -0.5px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .logo { font: 800 22px var(--sans); }
   .logo span { color: var(--accent); }
   header .spacer { flex: 1; }
-  .chip { font: 600 13px var(--mono); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+  .chip { font: 600 13px var(--sans); padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
   .chip b { color: var(--text); }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .game { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .game { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
   @media (max-width: 760px) { .grid2, .game { grid-template-columns: 1fr; } }
   h2 { margin: 0 0 16px; font-size: 18px; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
   input, select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; outline: none; }
   input:focus, select:focus { border-color: var(--blue); }
-  #join-code { font-family: var(--mono); text-transform: uppercase; letter-spacing: 6px; font-size: 20px; }
+  #join-code { direction: ltr; text-align: center; font-family: var(--mono); text-transform: uppercase; letter-spacing: 6px; font-size: 20px; }
   .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .seg.three { grid-template-columns: repeat(3, 1fr); }
   .seg button { padding: 8px 0; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: 14px; }
   .seg button.on { border-color: var(--accent); color: var(--accent); background: rgba(126, 231, 135, .08); }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -43,96 +50,103 @@
   .error { min-height: 22px; margin-top: 12px; color: var(--bad); font-size: 14px; }
   .muted { color: var(--muted); }
   .center { text-align: center; }
-  .bigcode { font: 700 56px/1 var(--mono); letter-spacing: 12px; color: var(--accent); margin: 8px 0; }
-  .share { font: 14px var(--mono); color: var(--blue); word-break: break-all; }
+  .bigcode { direction: ltr; font: 700 56px/1 var(--mono); letter-spacing: 12px; color: var(--accent); margin: 8px 0; }
+  .share { direction: ltr; font: 14px var(--mono); color: var(--blue); word-break: break-all; }
   .players { list-style: none; margin: 0; padding: 0; }
   .players li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
   .players li:nth-child(odd) { background: var(--panel-2); }
-  .players .rank { width: 22px; font: 700 13px var(--mono); color: var(--muted); }
-  .players .name { flex: 1; min-width: 4ch; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .players .score { font: 700 14px var(--mono); }
+  .players .rank { width: 22px; font-weight: 700; font-size: 13px; color: var(--muted); }
+  .players .name { flex: 1; min-width: 4ch; text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .players .score { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
   .players .me .name { color: var(--accent); font-weight: 700; }
   .players .off { opacity: .4; }
-  .tag { flex: none; font: 600 11px var(--mono); padding: 1px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); }
+  .tag { flex: none; font: 600 11px var(--sans); padding: 1px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); }
   .tag.host { color: var(--warn); }
   .tag.ok { color: var(--accent); } .tag.no { color: var(--bad); }
   .lobby-players li { justify-content: flex-start; }
-  .qhead { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .qhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .lvl-mixed { color: var(--purple); }
   .lvl-easy { color: var(--accent); } .lvl-medium { color: var(--warn); } .lvl-hard { color: var(--bad); }
   .timer { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
-  .timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+  .timer i { display: block; height: 100%; background: var(--accent); transform-origin: right; }
   .timer.low i { background: var(--bad); }
-  .secs { font: 700 20px var(--mono); margin-left: auto; }
-  .qtext { font-size: 22px; font-weight: 600; margin: 0 0 14px; }
+  .secs { font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; margin-inline-start: auto; }
+  .qtext { font-size: 21px; font-weight: 700; line-height: 1.9; margin: 0 0 16px; overflow-wrap: break-word; }
+  @media (max-width: 560px) { .qtext { font-size: 18px; } }
   pre.code { direction: ltr; text-align: left; margin: 0 0 18px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: 15px/1.55 var(--mono); color: var(--purple); }
-  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
   @media (max-width: 560px) { .opts { grid-template-columns: 1fr; } }
-  .opt { display: flex; gap: 12px; align-items: center; text-align: left; padding: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-family: var(--mono); font-size: 15px; }
+  .opt { display: flex; gap: 12px; align-items: center; min-width: 0; min-height: 56px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 16px; line-height: 1.6; text-align: right; }
   .opt:hover:not(:disabled) { border-color: var(--blue); }
   .opt:disabled { cursor: default; }
-  .opt span { flex: 1; text-align: left; }
-  [dir=rtl] .opt span { text-align: right; }
-  [dir=rtl] .opt { font-family: var(--sans); }
-  .opt kbd { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: var(--bg); color: var(--muted); font-size: 12px; }
+  .opt span { flex: 1; min-width: 0; text-align: right; overflow-wrap: break-word; }
+  .opt span[dir=ltr] { font-family: var(--mono); font-size: 15px; }
+  .opt kbd { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; background: var(--bg); color: var(--muted); font: 600 13px var(--sans); }
   .opt.picked { border-color: var(--blue); background: rgba(121, 192, 255, .1); }
   .opt.right { border-color: var(--accent); background: rgba(126, 231, 135, .14); }
   .opt.wrong { border-color: var(--bad); background: rgba(255, 123, 114, .12); }
   .opt.dim { opacity: .45; }
   .note { margin-top: 16px; padding: 12px 14px; border-inline-start: 3px solid var(--blue); background: var(--panel-2); border-start-end-radius: 8px; border-end-end-radius: 8px; font-size: 15px; }
-  .result { font: 700 18px var(--mono); margin-top: 16px; }
-  .countdown { font: 800 140px/1 var(--mono); color: var(--accent); text-align: center; padding: 60px 0; }
+  .result { font-weight: 800; font-size: 18px; margin-top: 16px; }
+  .countdown { font: 800 140px/1 var(--sans); color: var(--accent); text-align: center; padding: 60px 0; }
   .podium { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin: 10px 0 24px; }
-  .podium div { width: 120px; text-align: center; }
-  .podium .bar { border-radius: 8px 8px 0 0; background: var(--panel-2); border: 1px solid var(--line); border-bottom: 0; font: 800 28px var(--mono); display: grid; place-items: center; }
+  .podium div { width: 120px; min-width: 0; text-align: center; }
+  .podium .bar { border-radius: 8px 8px 0 0; background: var(--panel-2); border: 1px solid var(--line); border-bottom: 0; font: 800 28px var(--sans); display: grid; place-items: center; }
   .podium .p1 .bar { height: 130px; color: var(--warn); } .podium .p2 .bar { height: 95px; color: var(--blue); } .podium .p3 .bar { height: 70px; color: var(--purple); }
   .podium .pname { font-weight: 700; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .podium .pscore { font: 13px var(--mono); color: var(--muted); margin-bottom: 6px; }
+  .podium .pscore { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">&lt;quiz<span>/race</span>&gt;</div>
+    <div class="logo">مسابقه‌ی <span>دانستنی‌ها</span></div>
     <div class="spacer"></div>
     <div id="hdr" class="hidden" style="display:flex;gap:8px;align-items:center">
-      <span class="chip">room <b id="hdr-code"></b></span>
-      <button class="btn ghost small" id="leave">Leave</button>
+      <span class="chip">اتاق <b id="hdr-code" class="ltr"></b></span>
+      <button class="btn ghost small" id="leave">خروج</button>
     </div>
   </header>
 
   <!-- HOME -->
   <section id="home" class="grid2">
     <form class="panel" id="create-form">
-      <h2>Create a race</h2>
-      <label for="c-name">Nickname</label>
+      <h2>ساختن مسابقه</h2>
+      <label for="c-name">نام مستعار</label>
       <input id="c-name" maxlength="20" autocomplete="off" required>
-      <label for="c-cat">Category</label>
+      <label for="c-cat">دسته‌بندی</label>
       <select id="c-cat"></select>
-      <label>Difficulty</label>
-      <div class="seg" id="c-diff">
-        <button type="button" data-v="easy" class="on">Easy</button>
-        <button type="button" data-v="medium">Medium</button>
-        <button type="button" data-v="hard">Hard</button>
-        <button type="button" data-v="mixed">Mixed</button>
+      <label id="c-diff-label">سطح سختی</label>
+      <div class="seg" id="c-diff" role="group" aria-labelledby="c-diff-label">
+        <button type="button" data-v="easy" class="on" aria-pressed="true">آسان</button>
+        <button type="button" data-v="medium" aria-pressed="false">متوسط</button>
+        <button type="button" data-v="hard" aria-pressed="false">سخت</button>
+        <button type="button" data-v="mixed" aria-pressed="false">ترکیبی</button>
+      </div>
+      <label id="c-opts-label">تعداد گزینه‌های هر سؤال</label>
+      <div class="seg three" id="c-opts" role="group" aria-labelledby="c-opts-label">
+        <button type="button" data-v="4" class="on" aria-pressed="true">۴ گزینه</button>
+        <button type="button" data-v="6" aria-pressed="false">۶ گزینه</button>
+        <button type="button" data-v="8" aria-pressed="false">۸ گزینه</button>
       </div>
       <div class="row">
-        <div><label for="c-count">Questions</label>
-          <select id="c-count"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></div>
-        <div><label for="c-secs">Seconds each</label>
-          <select id="c-secs"><option>10</option><option selected>20</option><option>30</option></select></div>
+        <div><label for="c-count">تعداد سؤال‌ها</label>
+          <select id="c-count"><option value="5">۵</option><option value="10" selected>۱۰</option><option value="15">۱۵</option><option value="20">۲۰</option></select></div>
+        <div><label for="c-secs">زمان هر سؤال (ثانیه)</label>
+          <select id="c-secs"><option value="10">۱۰</option><option value="20" selected>۲۰</option><option value="30">۳۰</option><option value="45">۴۵</option></select></div>
       </div>
       <div class="muted" id="c-pool" style="font-size:13px;margin-top:8px"></div>
-      <button class="btn" type="submit">Create room</button>
+      <button class="btn" type="submit">ساختن اتاق</button>
       <div class="error" id="c-err"></div>
     </form>
     <form class="panel" id="join-form">
-      <h2>Join a race</h2>
-      <label for="j-name">Nickname</label>
+      <h2>پیوستن به مسابقه</h2>
+      <label for="j-name">نام مستعار</label>
       <input id="j-name" maxlength="20" autocomplete="off" required>
-      <label for="join-code">Room code</label>
+      <label for="join-code">کد اتاق</label>
       <input id="join-code" maxlength="4" autocomplete="off" required>
-      <button class="btn" type="submit">Join</button>
+      <button class="btn" type="submit">ورود</button>
       <div class="error" id="j-err"></div>
     </form>
   </section>
@@ -151,23 +165,35 @@ let es = null;
 let state = null;
 let clockOffset = 0;   // serverNow - Date.now()
 let difficulty = 'easy';
+let optionCount = 4;
+
+const DIFF_FA = { easy: 'آسان', medium: 'متوسط', hard: 'سخت', mixed: 'ترکیبی' };
+// Persian digits for every number the UI shows; room codes and links stay Latin.
+const fa = n => Number(n).toLocaleString('fa-IR');
+// A text with any Persian letter reads right-to-left; pure Latin (code, commands, names) left-to-right.
+const dirOf = text => (/[\u0600-\u06FF]/.test(text) ? 'rtl' : 'ltr');
 
 function load() { try { return JSON.parse(sessionStorage.getItem('quiz-session')); } catch { return null; } }
 function save(s) { session = s; try { s ? sessionStorage.setItem('quiz-session', JSON.stringify(s)) : sessionStorage.removeItem('quiz-session'); } catch {} }
 function serverNow() { return Date.now() + clockOffset; }
 
 async function api(path, body) {
-  const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  let res;
+  try {
+    res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  } catch {
+    throw new Error('ارتباط با سرور برقرار نشد');
+  }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Something went wrong');
+  if (!res.ok) throw new Error(data.error || 'خطایی رخ داد');
   return data;
 }
 
 // ---------- home ----------
 async function initHome() {
   info = await (await fetch('/api/info')).json();
-  $('#c-cat').innerHTML = info.categories.map(c => `<option>${esc(c.name)}</option>`).join('')
-    + '<option value="mixed">همه دسته‌ها (mixed)</option>';
+  $('#c-cat').innerHTML = '<option value="mixed">همه‌ی دسته‌ها (ترکیبی)</option>'
+    + info.categories.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   const name = localStorage.getItem('quiz-name') || '';
   $('#c-name').value = $('#j-name').value = name;
   const room = new URLSearchParams(location.search).get('room');
@@ -179,22 +205,28 @@ function updatePool() {
   const value = $('#c-cat').value;
   const cats = value === 'mixed' ? info.categories : info.categories.filter(c => c.name === value);
   const n = cats.reduce((sum, c) => sum + (difficulty === 'mixed' ? c.counts.easy + c.counts.medium + c.counts.hard : c.counts[difficulty]), 0);
-  $('#c-pool').textContent = `${n} ${difficulty} questions available`;
+  $('#c-pool').textContent = difficulty === 'mixed' ? `${fa(n)} سؤال در دسترس است` : `${fa(n)} سؤال ${DIFF_FA[difficulty]} در دسترس است`;
 }
 
-$('#c-diff').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  difficulty = b.dataset.v;
-  $('#c-diff').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-  updatePool();
-});
+function segment(sel, onPick) {
+  $(sel).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    $(sel).querySelectorAll('button').forEach(x => {
+      x.classList.toggle('on', x === b);
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+    onPick(b.dataset.v);
+  });
+}
+segment('#c-diff', v => { difficulty = v; updatePool(); });
+segment('#c-opts', v => { optionCount = Number(v); });
 $('#c-cat').addEventListener('change', updatePool);
 
 $('#create-form').addEventListener('submit', async e => {
   e.preventDefault(); $('#c-err').textContent = '';
   try {
     const nickname = $('#c-name').value;
-    const r = await api('/api/rooms', { nickname, category: $('#c-cat').value, difficulty, count: $('#c-count').value, seconds: $('#c-secs').value });
+    const r = await api('/api/rooms', { nickname, category: $('#c-cat').value, difficulty, optionCount, count: $('#c-count').value, seconds: $('#c-secs').value });
     localStorage.setItem('quiz-name', nickname.trim());
     enterRoom(r);
   } catch (err) { $('#c-err').textContent = err.message; }
@@ -211,7 +243,7 @@ $('#join-form').addEventListener('submit', async e => {
   } catch (err) { $('#j-err').textContent = err.message; }
 });
 
-$('#leave').addEventListener('click', () => { if (confirm('Leave this race?')) leaveRoom(); });
+$('#leave').addEventListener('click', () => { if (confirm('از این مسابقه خارج می‌شوید؟')) leaveRoom(); });
 
 // ---------- room connection ----------
 function enterRoom({ code, playerId }) {
@@ -239,7 +271,7 @@ async function checkRoom() {
   if (!session) return;
   try {
     const res = await fetch(`/api/rooms/${session.code}/status?playerId=${encodeURIComponent(session.playerId)}`);
-    if (res.status === 404) return leaveRoom('That room no longer exists.');
+    if (res.status === 404) return leaveRoom('این اتاق دیگر وجود ندارد.');
   } catch {}
   connect();
 }
@@ -265,23 +297,26 @@ function render() {
 }
 
 const isHost = () => state.hostId === state.you;
-const categoryName = c => (c === 'mixed' ? 'All categories' : esc(c));
-const isRtl = text => /[\u0600-\u06FF]/.test(text);
-const settingsLine = () => `<span dir="auto">${categoryName(state.settings.category)}</span> · <span class="lvl-${state.settings.difficulty}">${state.settings.difficulty}</span> · ${state.total} questions · ${state.settings.seconds}s each`;
+const categoryName = c => (c === 'mixed' ? 'همه‌ی دسته‌ها' : esc(c));
+const settingsLine = () => {
+  const st = state.settings;
+  return [categoryName(st.category), `<span class="lvl-${st.difficulty}">${DIFF_FA[st.difficulty]}</span>`,
+    `${fa(state.total)} سؤال`, `${fa(st.optionCount)} گزینه`, `${fa(st.seconds)} ثانیه برای هر سؤال`].join(' · ');
+};
 
 function playerList({ lobby = false } = {}) {
   return `<ul class="players ${lobby ? 'lobby-players' : ''}">${state.players.map((p, i) => {
     let tag = '';
-    if (state.phase === 'question') tag = p.answered ? '<span class="tag ok">answered</span>' : '';
-    if (state.phase === 'reveal' && p.lastCorrect !== null) tag = p.lastCorrect ? `<span class="tag ok">+${p.lastPoints}</span>` : '<span class="tag no">✗</span>';
+    if (state.phase === 'question') tag = p.answered ? '<span class="tag ok">پاسخ داد</span>' : '';
+    if (state.phase === 'reveal' && p.lastCorrect !== null) tag = p.lastCorrect ? `<span class="tag ok num" dir="ltr">+${fa(p.lastPoints)}</span>` : '<span class="tag no">✗</span>';
     if (state.phase === 'reveal' && p.lastCorrect === null) tag = '<span class="tag no">—</span>';
     return `<li class="${p.id === state.you ? 'me' : ''} ${p.connected ? '' : 'off'}">
-      ${lobby ? '' : `<span class="rank">${i + 1}</span>`}
-      <span class="name" dir="auto">${esc(p.name)}${lobby && p.id === state.you ? ' (you)' : ''}</span>
-      ${p.id === state.hostId ? '<span class="tag host">host</span>' : ''}
-      ${p.connected ? '' : '<span class="tag">offline</span>'}
+      ${lobby ? '' : `<span class="rank">${fa(i + 1)}</span>`}
+      <span class="name"><bdi>${esc(p.name)}</bdi>${lobby && p.id === state.you ? ' (شما)' : ''}</span>
+      ${p.id === state.hostId ? '<span class="tag host">میزبان</span>' : ''}
+      ${p.connected ? '' : '<span class="tag">آفلاین</span>'}
       ${tag}
-      ${lobby ? '' : `<span class="score">${p.score}</span>`}
+      ${lobby ? '' : `<span class="score">${fa(p.score)}</span>`}
     </li>`;
   }).join('')}</ul>`;
 }
@@ -290,23 +325,23 @@ function viewLobby() {
   const base = info.lanUrls[0] || location.origin;
   return `<div class="grid2">
     <div class="panel center">
-      <div class="muted">Room code</div>
+      <div class="muted">کد اتاق</div>
       <div class="bigcode">${state.code}</div>
-      <div class="muted" style="margin-bottom:6px">Friends on your network can open</div>
+      <div class="muted" style="margin-bottom:6px">دوستانی که به همین شبکه وصل‌اند می‌توانند این نشانی را باز کنند:</div>
       <div class="share">${esc(base)}/?room=${state.code}</div>
       <p class="muted" style="margin-top:18px">${settingsLine()}</p>
       ${isHost()
-        ? `<button class="btn" data-act="start">Start race (${state.players.length} player${state.players.length === 1 ? '' : 's'})</button>`
-        : '<p class="muted">Waiting for the host to start…</p>'}
+        ? `<button class="btn" data-act="start">شروع مسابقه (${fa(state.players.length)} بازیکن)</button>`
+        : '<p class="muted">منتظر شروع مسابقه توسط میزبان…</p>'}
       <div class="error" id="room-err"></div>
     </div>
-    <div class="panel"><h2>Players</h2>${playerList({ lobby: true })}</div>
+    <div class="panel"><h2>بازیکنان</h2>${playerList({ lobby: true })}</div>
   </div>`;
 }
 
 function viewCountdown() {
   return `<div class="panel"><p class="center muted">${settingsLine()}</p>
-    <div class="countdown" data-count></div><p class="center muted">Get ready!</p></div>`;
+    <div class="countdown" data-count></div><p class="center muted">آماده باشید!</p></div>`;
 }
 
 function viewQuestion() {
@@ -317,47 +352,45 @@ function viewQuestion() {
     if (reveal) cls = i === reveal.answer ? 'right' : i === state.myAnswer ? 'wrong' : 'dim';
     else if (i === state.myAnswer) cls = 'picked';
     const locked = reveal || state.myAnswer !== null;
-    return `<button class="opt ${cls}" data-opt="${i}" ${locked ? 'disabled' : ''}><kbd>${i + 1}</kbd><span dir="auto">${esc(o)}</span></button>`;
+    return `<button class="opt ${cls}" data-opt="${i}" ${locked ? 'disabled' : ''}><kbd>${fa(i + 1)}</kbd><span dir="${dirOf(o)}">${esc(o)}</span></button>`;
   }).join('');
   const me = state.players.find(p => p.id === state.you);
   let footer = '';
   if (reveal) {
-    footer = me.lastCorrect ? `<div class="result" style="color:var(--accent)">Correct! +${me.lastPoints}</div>`
-      : `<div class="result" style="color:var(--bad)">${state.myAnswer === null ? 'Too slow!' : 'Wrong!'}</div>`;
-    if (reveal.explanation) footer += `<div class="note" dir="auto">${esc(reveal.explanation)}</div>`;
-    footer += `<p class="muted" style="font-size:13px">${q.index + 1 < state.total ? 'Next question' : 'Results'} in <span data-secs></span>s</p>`;
+    footer = me.lastCorrect ? `<div class="result" style="color:var(--accent)">درست بود! ${fa(me.lastPoints)} امتیاز</div>`
+      : `<div class="result" style="color:var(--bad)">${state.myAnswer === null ? 'وقت تمام شد!' : 'اشتباه بود!'}</div>`;
+    if (reveal.explanation) footer += `<div class="note" dir="${dirOf(reveal.explanation)}">${esc(reveal.explanation)}</div>`;
+    footer += `<p class="muted" style="font-size:13px">${q.index + 1 < state.total ? 'سؤال بعدی' : 'نتایج'} تا <span data-secs></span> ثانیه‌ی دیگر</p>`;
   } else if (state.myAnswer !== null) {
-    footer = '<p class="muted">Answer locked — waiting for others…</p>';
+    footer = '<p class="muted">پاسخ شما ثبت شد — منتظر بقیه…</p>';
   }
   return `<div class="game">
     <div class="panel">
       <div class="qhead">
-        <span class="chip">Q <b>${q.index + 1}</b>/${state.total}</span>
-        <span class="chip lvl-${q.difficulty}">${q.difficulty}</span>
-        ${state.settings.category === 'mixed' ? `<span class="chip" dir="auto">${esc(q.category)}</span>` : ''}
+        <span class="chip">سؤال <b>${fa(q.index + 1)}</b> از ${fa(state.total)}</span>
+        <span class="chip lvl-${q.difficulty}">${DIFF_FA[q.difficulty]}</span>
+        ${state.settings.category === 'mixed' ? `<span class="chip">${esc(q.category)}</span>` : ''}
         ${reveal ? '' : '<span class="secs" data-secs></span>'}
       </div>
       ${reveal ? '' : '<div class="timer" data-bar><i></i></div>'}
-      <div dir="${isRtl(q.question) ? 'rtl' : 'ltr'}">
-      <p class="qtext">${esc(q.question)}</p>
-      ${q.code ? `<pre class="code">${esc(q.code)}</pre>` : ''}
-      <div class="opts">${opts}</div>
-      </div>
+      <p class="qtext" dir="${dirOf(q.question)}">${esc(q.question)}</p>
+      ${q.code ? `<pre class="code" dir="ltr">${esc(q.code)}</pre>` : ''}
+      <div class="opts" role="group" aria-label="گزینه‌ها">${opts}</div>
       ${footer}
     </div>
-    <div class="panel"><h2>Leaderboard</h2>${playerList()}</div>
+    <div class="panel"><h2>جدول امتیازها</h2>${playerList()}</div>
   </div>`;
 }
 
 function viewFinal() {
   const [a, b, c] = state.players;
-  const slot = (p, n) => p ? `<div class="p${n}"><div class="pname">${esc(p.name)}</div><div class="pscore">${p.score} pts</div><div class="bar">${n}</div></div>` : '';
+  const slot = (p, n) => p ? `<div class="p${n}"><div class="pname"><bdi>${esc(p.name)}</bdi></div><div class="pscore">${fa(p.score)} امتیاز</div><div class="bar">${fa(n)}</div></div>` : '';
   const me = state.players.findIndex(p => p.id === state.you) + 1;
   return `<div class="panel">
-    <h2 class="center">🏁 Race finished — you placed #${me}</h2>
+    <h2 class="center">🏁 مسابقه تمام شد — شما نفر ${fa(me)} شدید</h2>
     <div class="podium">${slot(b, 2)}${slot(a, 1)}${slot(c, 3)}</div>
     ${playerList()}
-    ${isHost() ? '<button class="btn" data-act="restart">Play again with new questions</button>' : '<p class="center muted">The host can start another round.</p>'}
+    ${isHost() ? '<button class="btn" data-act="restart">دور جدید با سؤال‌های تازه</button>' : '<p class="center muted">میزبان می‌تواند دور جدیدی را شروع کند.</p>'}
     <div class="error" id="room-err"></div>
   </div>`;
 }
@@ -366,8 +399,8 @@ function viewFinal() {
 function tickTimers() {
   if (!state || !state.phaseEndsAt) return;
   const left = Math.max(0, state.phaseEndsAt - serverNow());
-  const count = $('[data-count]'); if (count) count.textContent = Math.ceil(left / 1000) || 'Go!';
-  const secs = $('[data-secs]'); if (secs) secs.textContent = Math.ceil(left / 1000);
+  const count = $('[data-count]'); if (count) count.textContent = Math.ceil(left / 1000) ? fa(Math.ceil(left / 1000)) : 'شروع!';
+  const secs = $('[data-secs]'); if (secs) secs.textContent = fa(Math.ceil(left / 1000));
   const bar = $('[data-bar]');
   if (bar) {
     const frac = left / (state.settings.seconds * 1000);
@@ -395,7 +428,9 @@ $('#room').addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.target.matches('input, select')) return;
-  const n = Number(e.key); if (n >= 1 && n <= 4) choose(n - 1);
+  // Number keys pick an option, on Latin as well as Persian/Arabic keyboard layouts.
+  const n = ['0123456789', '۰۱۲۳۴۵۶۷۸۹', '٠١٢٣٤٥٦٧٨٩'].map(digits => digits.indexOf(e.key)).find(i => i > 0);
+  if (n) choose(n - 1);
 });
 
 initHome().then(() => { if (session) connect(); });
