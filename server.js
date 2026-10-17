@@ -5,12 +5,14 @@ const os = require('node:os');
 const path = require('node:path');
 const { RoomManager, GameError } = require('./game');
 const { loadQuestions, OPTION_COUNTS } = require('./questions');
+const { Accounts } = require('./accounts');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const questions = loadQuestions(path.join(__dirname, 'questions'));
 const indexHtml = path.join(__dirname, 'public', 'index.html');
 const game = new RoomManager(questions);
+const accounts = new Accounts(process.env.USERS_FILE || path.join(__dirname, 'data', 'users.json'));
 
 // room code -> Set<{ playerId, res }>
 const streams = new Map();
@@ -85,6 +87,8 @@ function openStream(req, res, code, playerId) {
   });
 }
 
+const bearer = req => (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+
 async function handle(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const parts = url.pathname.split('/').filter(Boolean); // e.g. ['api','rooms','ABCD','join']
@@ -97,9 +101,29 @@ async function handle(req, res) {
   if (req.method === 'GET' && url.pathname === '/api/info') {
     return sendJson(res, 200, { categories: game.categories(), optionCounts: OPTION_COUNTS, lanUrls: lanUrls() });
   }
-  if (req.method === 'POST' && url.pathname === '/api/rooms') {
+  if (req.method === 'POST' && url.pathname === '/api/register') {
     const body = await readBody(req);
-    return sendJson(res, 201, game.createRoom(body, now));
+    return sendJson(res, 201, accounts.register(body.username, body.password));
+  }
+  if (req.method === 'POST' && url.pathname === '/api/login') {
+    const body = await readBody(req);
+    return sendJson(res, 200, accounts.login(body.username, body.password));
+  }
+  if (req.method === 'POST' && url.pathname === '/api/logout') {
+    accounts.logout(bearer(req));
+    return sendJson(res, 200, { ok: true });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/me') {
+    return sendJson(res, 200, accounts.profile(accounts.requireUser(bearer(req))));
+  }
+  if (req.method === 'GET' && url.pathname === '/api/leaderboard') {
+    return sendJson(res, 200, accounts.leaderboard());
+  }
+  // In a room a player's name is their username, so creating and joining need a login.
+  if (req.method === 'POST' && url.pathname === '/api/rooms') {
+    const user = accounts.requireUser(bearer(req));
+    const body = await readBody(req);
+    return sendJson(res, 201, game.createRoom({ ...body, nickname: user.username }, now));
   }
   if (parts[0] === 'api' && parts[1] === 'rooms' && parts.length === 4) {
     const code = parts[2].toUpperCase();
@@ -113,7 +137,10 @@ async function handle(req, res) {
     }
     if (req.method === 'POST') {
       const body = await readBody(req);
-      if (action === 'join') return sendJson(res, 200, { code, ...game.joinRoom(code, body.nickname, now) });
+      if (action === 'join') {
+        const user = accounts.requireUser(bearer(req));
+        return sendJson(res, 200, { code, ...game.joinRoom(code, user.username, now) });
+      }
       if (action === 'start') game.start(code, body.playerId, now);
       else if (action === 'answer') game.answer(code, body.playerId, body.option, now);
       else if (action === 'restart') game.restart(code, body.playerId, now);
@@ -134,7 +161,14 @@ const server = http.createServer((req, res) => {
 });
 
 setInterval(() => {
-  const { changed, removed } = game.tick(Date.now());
+  const { changed, removed, finished } = game.tick(Date.now());
+  for (const { code, results } of finished) {
+    try {
+      game.setRatings(code, accounts.recordGame(results));
+    } catch (err) {
+      console.error('Could not save game results:', err);
+    }
+  }
   changed.forEach(broadcast);
   for (const code of removed) {
     for (const s of streams.get(code) || []) s.res.end();

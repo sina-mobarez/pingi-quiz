@@ -38,7 +38,7 @@
   input, select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; outline: none; }
   input:focus, select:focus { border-color: var(--blue); }
   #join-code { direction: ltr; text-align: center; font-family: var(--mono); text-transform: uppercase; letter-spacing: 6px; font-size: 20px; }
-  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 6px; }
   .seg.three { grid-template-columns: repeat(3, 1fr); }
   .seg button { padding: 8px 0; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: 14px; }
   .seg button.on { border-color: var(--accent); color: var(--accent); background: rgba(126, 231, 135, .08); }
@@ -53,20 +53,23 @@
   .bigcode { direction: ltr; font: 700 56px/1 var(--mono); letter-spacing: 12px; color: var(--accent); margin: 8px 0; }
   .share { direction: ltr; font: 14px var(--mono); color: var(--blue); word-break: break-all; }
   .players { list-style: none; margin: 0; padding: 0; }
-  .players li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+  .players li { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px; }
   .players li:nth-child(odd) { background: var(--panel-2); }
   .players .rank { width: 22px; font-weight: 700; font-size: 13px; color: var(--muted); }
-  .players .name { flex: 1; min-width: 4ch; text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .players .name { flex: 1; min-width: 3ch; text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .players .score { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
   .players .me .name { color: var(--accent); font-weight: 700; }
   .players .off { opacity: .4; }
   .tag { flex: none; font: 600 11px var(--sans); padding: 1px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); }
   .tag.host { color: var(--warn); }
   .tag.ok { color: var(--accent); } .tag.no { color: var(--bad); }
+  .tag.fire { color: var(--warn); }
+  .move { flex: none; font-size: 12px; font-weight: 700; text-align: center; }
+  .move.up { color: var(--accent); } .move.down { color: var(--bad); }
   .lobby-players li { justify-content: flex-start; }
   .qhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
   .lvl-mixed { color: var(--purple); }
-  .lvl-easy { color: var(--accent); } .lvl-medium { color: var(--warn); } .lvl-hard { color: var(--bad); }
+  .lvl-easy { color: var(--accent); } .lvl-medium { color: var(--warn); } .lvl-hard { color: var(--bad); } .lvl-expert { color: var(--purple); }
   .timer { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
   .timer i { display: block; height: 100%; background: var(--accent); transform-origin: right; }
   .timer.low i { background: var(--bad); }
@@ -80,7 +83,14 @@
   .opt:hover:not(:disabled) { border-color: var(--blue); }
   .opt:disabled { cursor: default; }
   .opt span { flex: 1; min-width: 0; text-align: right; overflow-wrap: break-word; }
-  .opt span[dir=ltr] { font-family: var(--mono); font-size: 15px; }
+  .opt span.mono { font-family: var(--mono); font-size: 15px; }
+  /* IQ puzzles: symbol grids as real cells, and shapes from one symbol font so they line up. */
+  .sym { font-family: "DejaVu Sans", "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", sans-serif; }
+  .opt span.sym { font-size: 24px; letter-spacing: 3px; line-height: 1.2; text-align: center; }
+  table.grid { direction: ltr; margin: 0 auto 18px; border-collapse: separate; border-spacing: 6px; }
+  table.grid td { min-width: 72px; height: 60px; padding: 4px 10px; text-align: center; white-space: nowrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 26px; letter-spacing: 2px; color: var(--purple); }
+  table.grid td.ask { color: var(--warn); border-style: dashed; }
+  @media (max-width: 560px) { table.grid td { min-width: 0; height: 48px; padding: 4px 6px; font-size: 20px; } }
   .opt kbd { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; background: var(--bg); color: var(--muted); font: 600 13px var(--sans); }
   .opt.picked { border-color: var(--blue); background: rgba(121, 192, 255, .1); }
   .opt.right { border-color: var(--accent); background: rgba(126, 231, 135, .14); }
@@ -95,6 +105,22 @@
   .podium .p1 .bar { height: 130px; color: var(--warn); } .podium .p2 .bar { height: 95px; color: var(--blue); } .podium .p3 .bar { height: 70px; color: var(--purple); }
   .podium .pname { font-weight: 700; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .podium .pscore { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .auth { max-width: 420px; margin: 0 auto; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+  .tabs button { padding: 10px 0; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  .board { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .board th { white-space: nowrap; font-weight: 600; color: var(--muted); font-size: 12px; text-align: start; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .board td { padding: 8px; font-variant-numeric: tabular-nums; }
+  .board tr:nth-child(even) td { background: var(--panel-2); }
+  .board .me td { color: var(--accent); font-weight: 700; }
+  .board td.n { white-space: nowrap; }
+  .board .who { max-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .best h2 { color: var(--accent); } .worst h2 { color: var(--bad); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stats div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; text-align: center; }
+  .stats b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 12px; color: var(--muted); }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -103,18 +129,45 @@
   <header>
     <div class="logo">مسابقه‌ی <span>دانستنی‌ها</span></div>
     <div class="spacer"></div>
+    <div id="hdr-user" class="hidden" style="display:flex;gap:8px;align-items:center">
+      <span class="chip">👤 <b><bdi id="hdr-name"></bdi></b></span>
+      <button class="btn ghost small" id="show-board">🏆 جدول برترین‌ها</button>
+      <button class="btn ghost small" id="logout">خروج از حساب</button>
+    </div>
     <div id="hdr" class="hidden" style="display:flex;gap:8px;align-items:center">
       <span class="chip">اتاق <b id="hdr-code" class="ltr"></b></span>
-      <button class="btn ghost small" id="leave">خروج</button>
+      <button class="btn ghost small" id="leave">ترک اتاق</button>
     </div>
   </header>
 
+  <!-- LOGIN / REGISTER -->
+  <section id="auth" class="hidden">
+    <form class="panel auth" id="auth-form">
+      <div class="tabs" role="tablist">
+        <button type="button" data-mode="login" class="on" role="tab" aria-selected="true">ورود</button>
+        <button type="button" data-mode="register" role="tab" aria-selected="false">ثبت‌نام</button>
+      </div>
+      <label for="a-user">نام کاربری</label>
+      <input id="a-user" maxlength="20" autocomplete="username" required>
+      <label for="a-pass">رمز عبور</label>
+      <input id="a-pass" type="password" maxlength="100" autocomplete="current-password" required>
+      <div id="a-pass2-wrap" class="hidden">
+        <label for="a-pass2">تکرار رمز عبور</label>
+        <input id="a-pass2" type="password" maxlength="100" autocomplete="new-password">
+        <p class="muted" style="font-size:13px;margin:8px 0 0">نام کاربری ۳ تا ۲۰ حرف، عدد یا _ و رمز عبور دست‌کم ۶ نویسه.</p>
+      </div>
+      <button class="btn" type="submit" id="a-submit">ورود</button>
+      <div class="error" id="a-err"></div>
+    </form>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="board" class="hidden"></section>
+
   <!-- HOME -->
-  <section id="home" class="grid2">
+  <section id="home" class="grid2 hidden">
     <form class="panel" id="create-form">
       <h2>ساختن مسابقه</h2>
-      <label for="c-name">نام مستعار</label>
-      <input id="c-name" maxlength="20" autocomplete="off" required>
       <label for="c-cat">دسته‌بندی</label>
       <select id="c-cat"></select>
       <label id="c-diff-label">سطح سختی</label>
@@ -122,6 +175,7 @@
         <button type="button" data-v="easy" class="on" aria-pressed="true">آسان</button>
         <button type="button" data-v="medium" aria-pressed="false">متوسط</button>
         <button type="button" data-v="hard" aria-pressed="false">سخت</button>
+        <button type="button" data-v="expert" aria-pressed="false">خیلی سخت</button>
         <button type="button" data-v="mixed" aria-pressed="false">ترکیبی</button>
       </div>
       <label id="c-opts-label">تعداد گزینه‌های هر سؤال</label>
@@ -142,8 +196,6 @@
     </form>
     <form class="panel" id="join-form">
       <h2>پیوستن به مسابقه</h2>
-      <label for="j-name">نام مستعار</label>
-      <input id="j-name" maxlength="20" autocomplete="off" required>
       <label for="join-code">کد اتاق</label>
       <input id="join-code" maxlength="4" autocomplete="off" required>
       <button class="btn" type="submit">ورود</button>
@@ -160,6 +212,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let info = { categories: [], lanUrls: [] };
+let auth = loadAuth();   // { token, user } for the logged-in account
 let session = load();
 let es = null;
 let state = null;
@@ -167,44 +220,150 @@ let clockOffset = 0;   // serverNow - Date.now()
 let difficulty = 'easy';
 let optionCount = 4;
 
-const DIFF_FA = { easy: 'آسان', medium: 'متوسط', hard: 'سخت', mixed: 'ترکیبی' };
+const DIFF_FA = { easy: 'آسان', medium: 'متوسط', hard: 'سخت', expert: 'خیلی سخت', mixed: 'ترکیبی' };
 // Persian digits for every number the UI shows; room codes and links stay Latin.
 const fa = n => Number(n).toLocaleString('fa-IR');
-// A text with any Persian letter reads right-to-left; pure Latin (code, commands, names) left-to-right.
-const dirOf = text => (/[\u0600-\u06FF]/.test(text) ? 'rtl' : 'ltr');
+// A text with any Persian letter reads right-to-left; anything else (code, commands, names, symbol
+// grids, and numbers even in Persian digits, so a minus sign stays in front) reads left-to-right.
+const dirOf = text => (/[\u0600-\u065F\u066E-\u06EF\u06FA-\u06FF]/.test(text) ? 'rtl' : 'ltr');
+// Shapes and arrows only (IQ options): no letters or digits of any script.
+const isSymbols = text => !/[\p{L}\p{N}]/u.test(text);
+// Code-like options get the monospace font; plain numbers in Persian digits keep the text font.
+const optClass = text => (isSymbols(text) ? 'sym' : dirOf(text) === 'ltr' && !/[۰-۹]/.test(text) ? 'mono' : '');
+
+// A snippet with no Latin letters whose rows have equal cell counts is a puzzle grid, drawn as a table.
+function codeBlock(code) {
+  const rows = code.split('\n').map(r => r.trim().split(/\s+/));
+  if (/[A-Za-z]/.test(code) || rows.length < 2 || rows.some(r => r.length !== rows[0].length)) {
+    return `<pre class="code" dir="ltr">${esc(code)}</pre>`;
+  }
+  return `<table class="grid sym">${rows.map(r => `<tr>${r.map(c => `<td class="${c === '?' ? 'ask' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+}
 
 function load() { try { return JSON.parse(sessionStorage.getItem('quiz-session')); } catch { return null; } }
 function save(s) { session = s; try { s ? sessionStorage.setItem('quiz-session', JSON.stringify(s)) : sessionStorage.removeItem('quiz-session'); } catch {} }
+function loadAuth() { try { return JSON.parse(localStorage.getItem('quiz-auth')); } catch { return null; } }
+function saveAuth(a) { auth = a; try { a ? localStorage.setItem('quiz-auth', JSON.stringify(a)) : localStorage.removeItem('quiz-auth'); } catch {} }
 function serverNow() { return Date.now() + clockOffset; }
 
+// POST with a body, GET without one. A 401 means the login expired: back to the login form.
 async function api(path, body) {
   let res;
+  const headers = auth ? { Authorization: `Bearer ${auth.token}` } : {};
   try {
-    res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    res = body === undefined ? await fetch(path, { headers })
+      : await fetch(path, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   } catch {
     throw new Error('ارتباط با سرور برقرار نشد');
   }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && auth && !path.startsWith('/api/login')) { saveAuth(null); show('auth'); }
   if (!res.ok) throw new Error(data.error || 'خطایی رخ داد');
   return data;
 }
 
+// One top-level screen at a time: auth, home, board or room.
+function show(screen) {
+  for (const id of ['auth', 'home', 'board', 'room']) $('#' + id).classList.toggle('hidden', id !== screen);
+  $('#hdr').classList.toggle('hidden', screen !== 'room');
+  $('#hdr-user').classList.toggle('hidden', !auth || screen === 'room');
+  if (auth) $('#hdr-name').textContent = auth.user.username;
+}
+
+// ---------- login / register ----------
+let authMode = 'login';
+$('#auth-form .tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  authMode = b.dataset.mode;
+  $('#auth-form .tabs').querySelectorAll('button').forEach(x => {
+    x.classList.toggle('on', x === b);
+    x.setAttribute('aria-selected', String(x === b));
+  });
+  const register = authMode === 'register';
+  $('#a-pass2-wrap').classList.toggle('hidden', !register);
+  $('#a-pass2').required = register;
+  $('#a-pass').autocomplete = register ? 'new-password' : 'current-password';
+  $('#a-submit').textContent = register ? 'ساختن حساب' : 'ورود';
+  $('#a-err').textContent = '';
+});
+
+$('#auth-form').addEventListener('submit', async e => {
+  e.preventDefault(); $('#a-err').textContent = '';
+  const username = $('#a-user').value.trim();
+  const password = $('#a-pass').value;
+  if (authMode === 'register' && password !== $('#a-pass2').value) { $('#a-err').textContent = 'رمز عبور و تکرار آن یکسان نیستند'; return; }
+  try {
+    saveAuth(await api(`/api/${authMode}`, { username, password }));
+    $('#a-pass').value = $('#a-pass2').value = '';
+    show('home');
+  } catch (err) { $('#a-err').textContent = err.message; }
+});
+
+$('#logout').addEventListener('click', async () => {
+  try { await api('/api/logout', {}); } catch {}
+  saveAuth(null); show('auth');
+});
+
+// ---------- leaderboard ----------
+$('#show-board').addEventListener('click', showBoard);
+
+async function showBoard() {
+  show('board');
+  $('#board').innerHTML = '<div class="panel center muted">در حال بارگذاری…</div>';
+  try {
+    const [board, me] = await Promise.all([api('/api/leaderboard'), api('/api/me')]);
+    auth.user = me; saveAuth(auth);
+    $('#board').innerHTML = viewBoard(board, me);
+  } catch (err) {
+    $('#board').innerHTML = `<div class="panel center"><div class="error">${esc(err.message)}</div></div>`;
+  }
+}
+
+function viewBoard(board, me) {
+  const table = rows => rows.length ? `<table class="board">
+    <thead><tr><th>رتبه</th><th>بازیکن</th><th>ریتینگ</th><th>امتیاز کل</th><th>بازی</th><th>برد</th><th>دقت</th></tr></thead>
+    <tbody>${rows.map(p => `<tr class="${p.username === me.username ? 'me' : ''}">
+      <td class="n">${fa(p.rank)}</td><td class="who"><bdi>${esc(p.username)}</bdi></td><td class="n"><b>${fa(p.rating)}</b></td>
+      <td class="n">${fa(p.score)}</td><td class="n">${fa(p.games)}</td><td class="n">${fa(p.wins)}</td><td class="n">${fa(p.accuracy)}٪</td></tr>`).join('')}</tbody>
+  </table>` : '<p class="muted">هنوز کسی مسابقه‌ای را تمام نکرده است.</p>';
+  return `<div class="stats">
+      <div><b>${fa(me.score)}</b><span>امتیاز کل شما</span></div>
+      <div><b>${fa(me.rating)}</b><span>ریتینگ</span></div>
+      <div><b>${fa(me.games)}</b><span>بازی</span></div>
+      <div><b>${fa(me.wins)}</b><span>برد</span></div>
+      <div><b>${fa(me.accuracy)}٪</b><span>دقت پاسخ‌ها</span></div>
+      <div><b>${fa(me.best)}</b><span>بهترین بازی</span></div>
+      <div><b>🔥 ${fa(me.bestStreak)}</b><span>بیشترین پاسخ درست پشت سر هم</span></div>
+    </div>
+    <div class="grid2">
+      <div class="panel best"><h2>🏆 بهترین بازیکنان</h2>${table(board.best)}</div>
+      <div class="panel worst"><h2>🐢 ضعیف‌ترین بازیکنان</h2>${table(board.worst)}</div>
+    </div>
+    <p class="muted center" style="font-size:13px">رتبه‌بندی بر اساس ریتینگ · ${fa(board.total)} بازیکن رتبه دارند<br>
+      ریتینگ از ۱۰۰۰ شروع می‌شود و فقط در مسابقه‌های چندنفره تغییر می‌کند؛ بردن از حریف‌های قوی‌تر آن را بیشتر بالا می‌برد.</p>
+    <button class="btn ghost" id="board-back" style="max-width:320px;display:block;margin:12px auto 0">بازگشت</button>`;
+}
+
+$('#board').addEventListener('click', e => {
+  if (!e.target.closest('#board-back')) return;
+  if (session && state) { show('room'); render(); } else show('home');
+});
+
 // ---------- home ----------
 async function initHome() {
   info = await (await fetch('/api/info')).json();
+  if (auth) api('/api/me').then(me => { auth.user = me; saveAuth(auth); }).catch(() => {});
   $('#c-cat').innerHTML = '<option value="mixed">همه‌ی دسته‌ها (ترکیبی)</option>'
     + info.categories.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
-  const name = localStorage.getItem('quiz-name') || '';
-  $('#c-name').value = $('#j-name').value = name;
   const room = new URLSearchParams(location.search).get('room');
-  if (room) { $('#join-code').value = room.toUpperCase(); $('#j-name').focus(); }
+  if (room) $('#join-code').value = room.toUpperCase();
   updatePool();
 }
 
 function updatePool() {
   const value = $('#c-cat').value;
   const cats = value === 'mixed' ? info.categories : info.categories.filter(c => c.name === value);
-  const n = cats.reduce((sum, c) => sum + (difficulty === 'mixed' ? c.counts.easy + c.counts.medium + c.counts.hard : c.counts[difficulty]), 0);
+  const n = cats.reduce((sum, c) => sum + (difficulty === 'mixed' ? Object.values(c.counts).reduce((a, b) => a + b, 0) : c.counts[difficulty]), 0);
   $('#c-pool').textContent = difficulty === 'mixed' ? `${fa(n)} سؤال در دسترس است` : `${fa(n)} سؤال ${DIFF_FA[difficulty]} در دسترس است`;
 }
 
@@ -225,9 +384,7 @@ $('#c-cat').addEventListener('change', updatePool);
 $('#create-form').addEventListener('submit', async e => {
   e.preventDefault(); $('#c-err').textContent = '';
   try {
-    const nickname = $('#c-name').value;
-    const r = await api('/api/rooms', { nickname, category: $('#c-cat').value, difficulty, optionCount, count: $('#c-count').value, seconds: $('#c-secs').value });
-    localStorage.setItem('quiz-name', nickname.trim());
+    const r = await api('/api/rooms', { category: $('#c-cat').value, difficulty, optionCount, count: $('#c-count').value, seconds: $('#c-secs').value });
     enterRoom(r);
   } catch (err) { $('#c-err').textContent = err.message; }
 });
@@ -235,10 +392,8 @@ $('#create-form').addEventListener('submit', async e => {
 $('#join-form').addEventListener('submit', async e => {
   e.preventDefault(); $('#j-err').textContent = '';
   try {
-    const nickname = $('#j-name').value;
     const code = $('#join-code').value.trim().toUpperCase();
-    const r = await api(`/api/rooms/${encodeURIComponent(code)}/join`, { nickname });
-    localStorage.setItem('quiz-name', nickname.trim());
+    const r = await api(`/api/rooms/${encodeURIComponent(code)}/join`, {});
     enterRoom(r);
   } catch (err) { $('#j-err').textContent = err.message; }
 });
@@ -280,16 +435,15 @@ addEventListener('pageshow', e => { if (e.persisted && session) connect(); });
 function leaveRoom(msg) {
   if (es) es.close();
   es = null; state = null; save(null);
-  $('#room').classList.add('hidden'); $('#hdr').classList.add('hidden');
-  $('#home').classList.remove('hidden');
+  show(auth ? 'home' : 'auth');
   $('#j-err').textContent = msg || '';
 }
 
 // ---------- rendering ----------
 function render() {
-  $('#home').classList.add('hidden');
-  $('#room').classList.remove('hidden');
-  $('#hdr').classList.remove('hidden');
+  // The leaderboard stays open while live updates keep arriving; render() resumes the room.
+  if (!$('#board').classList.contains('hidden')) return;
+  show('room');
   $('#hdr-code').textContent = state.code;
   const views = { lobby: viewLobby, countdown: viewCountdown, question: viewQuestion, reveal: viewQuestion, final: viewFinal };
   $('#room').innerHTML = views[state.phase]();
@@ -308,14 +462,22 @@ function playerList({ lobby = false } = {}) {
   return `<ul class="players ${lobby ? 'lobby-players' : ''}">${state.players.map((p, i) => {
     let tag = '';
     if (state.phase === 'question') tag = p.answered ? '<span class="tag ok">پاسخ داد</span>' : '';
-    if (state.phase === 'reveal' && p.lastCorrect !== null) tag = p.lastCorrect ? `<span class="tag ok num" dir="ltr">+${fa(p.lastPoints)}</span>` : '<span class="tag no">✗</span>';
+    const fast = state.phase === 'reveal' && state.reveal.fastest === p.id ? '<span title="سریع‌ترین پاسخ درست">⚡</span>' : '';
+    if (state.phase === 'reveal' && p.lastCorrect !== null) tag = p.lastCorrect ? `<span class="tag ok num" dir="ltr">${fast}+${fa(p.lastPoints)}</span>` : '<span class="tag no">✗</span>';
     if (state.phase === 'reveal' && p.lastCorrect === null) tag = '<span class="tag no">—</span>';
+    if (state.phase === 'final' && p.rating) {
+      const d = p.rating.delta;
+      tag = `<span class="tag ${d >= 0 ? 'ok' : 'no'} num" dir="ltr" title="ریتینگ: ${fa(p.rating.rating)}">${d >= 0 ? '+' : '−'}${fa(Math.abs(d))} ریتینگ</span>`;
+    }
+    const fire = p.streak >= 2 && state.phase !== 'lobby' ? `<span class="tag fire" title="پاسخ درست پشت سر هم">🔥${fa(p.streak)}</span>` : '';
+    const move = state.phase === 'reveal' && p.move ? `<span class="move ${p.move > 0 ? 'up' : 'down'}">${p.move > 0 ? '▲' + fa(p.move) : '▼' + fa(-p.move)}</span>` : '';
     return `<li class="${p.id === state.you ? 'me' : ''} ${p.connected ? '' : 'off'}">
       ${lobby ? '' : `<span class="rank">${fa(i + 1)}</span>`}
+      ${move}
       <span class="name"><bdi>${esc(p.name)}</bdi>${lobby && p.id === state.you ? ' (شما)' : ''}</span>
       ${p.id === state.hostId ? '<span class="tag host">میزبان</span>' : ''}
       ${p.connected ? '' : '<span class="tag">آفلاین</span>'}
-      ${tag}
+      ${fire}${tag}
       ${lobby ? '' : `<span class="score">${fa(p.score)}</span>`}
     </li>`;
   }).join('')}</ul>`;
@@ -352,12 +514,14 @@ function viewQuestion() {
     if (reveal) cls = i === reveal.answer ? 'right' : i === state.myAnswer ? 'wrong' : 'dim';
     else if (i === state.myAnswer) cls = 'picked';
     const locked = reveal || state.myAnswer !== null;
-    return `<button class="opt ${cls}" data-opt="${i}" ${locked ? 'disabled' : ''}><kbd>${fa(i + 1)}</kbd><span dir="${dirOf(o)}">${esc(o)}</span></button>`;
+    return `<button class="opt ${cls}" data-opt="${i}" ${locked ? 'disabled' : ''}><kbd>${fa(i + 1)}</kbd><span dir="${dirOf(o)}" class="${optClass(o)}">${esc(o)}</span></button>`;
   }).join('');
   const me = state.players.find(p => p.id === state.you);
   let footer = '';
   if (reveal) {
-    footer = me.lastCorrect ? `<div class="result" style="color:var(--accent)">درست بود! ${fa(me.lastPoints)} امتیاز</div>`
+    footer = me.lastCorrect ? `<div class="result" style="color:var(--accent)">درست بود! ${fa(me.lastPoints)} امتیاز
+        ${me.lastBonus ? `<span style="color:var(--warn)">(🔥 ${fa(me.streak)} تا پشت سر هم: ${fa(me.lastBonus)} امتیاز پاداش)</span>` : ''}
+        ${reveal.fastest === state.you ? '<span style="color:var(--blue)">⚡ سریع‌ترین پاسخ!</span>' : ''}</div>`
       : `<div class="result" style="color:var(--bad)">${state.myAnswer === null ? 'وقت تمام شد!' : 'اشتباه بود!'}</div>`;
     if (reveal.explanation) footer += `<div class="note" dir="${dirOf(reveal.explanation)}">${esc(reveal.explanation)}</div>`;
     footer += `<p class="muted" style="font-size:13px">${q.index + 1 < state.total ? 'سؤال بعدی' : 'نتایج'} تا <span data-secs></span> ثانیه‌ی دیگر</p>`;
@@ -374,7 +538,7 @@ function viewQuestion() {
       </div>
       ${reveal ? '' : '<div class="timer" data-bar><i></i></div>'}
       <p class="qtext" dir="${dirOf(q.question)}">${esc(q.question)}</p>
-      ${q.code ? `<pre class="code" dir="ltr">${esc(q.code)}</pre>` : ''}
+      ${q.code ? codeBlock(q.code) : ''}
       <div class="opts" role="group" aria-label="گزینه‌ها">${opts}</div>
       ${footer}
     </div>
@@ -386,11 +550,18 @@ function viewFinal() {
   const [a, b, c] = state.players;
   const slot = (p, n) => p ? `<div class="p${n}"><div class="pname"><bdi>${esc(p.name)}</bdi></div><div class="pscore">${fa(p.score)} امتیاز</div><div class="bar">${fa(n)}</div></div>` : '';
   const me = state.players.findIndex(p => p.id === state.you) + 1;
+  const mine = state.players[me - 1];
+  const streak = Math.max(0, ...state.players.map(p => p.bestStreak));
+  const streakers = state.players.filter(p => streak >= 2 && p.bestStreak === streak).map(p => `<bdi>${esc(p.name)}</bdi>`);
   return `<div class="panel">
     <h2 class="center">🏁 مسابقه تمام شد — شما نفر ${fa(me)} شدید</h2>
+    ${mine.rating ? `<p class="center" style="margin-top:-8px">ریتینگ شما: <b class="num">${fa(mine.rating.rating)}</b>
+      <span class="num" dir="ltr" style="color:var(--${mine.rating.delta >= 0 ? 'accent' : 'bad'})">(${mine.rating.delta >= 0 ? '+' : '−'}${fa(Math.abs(mine.rating.delta))})</span></p>` : ''}
+    ${streakers.length ? `<p class="center muted">🔥 بیشترین پاسخ درست پشت سر هم: ${fa(streak)} — ${streakers.join('، ')}</p>` : ''}
     <div class="podium">${slot(b, 2)}${slot(a, 1)}${slot(c, 3)}</div>
     ${playerList()}
     ${isHost() ? '<button class="btn" data-act="restart">دور جدید با سؤال‌های تازه</button>' : '<p class="center muted">میزبان می‌تواند دور جدیدی را شروع کند.</p>'}
+    <button class="btn ghost" data-board>🏆 جدول برترین‌ها</button>
     <div class="error" id="room-err"></div>
   </div>`;
 }
@@ -418,12 +589,14 @@ async function act(path, body) {
 
 function choose(i) {
   if (!state || state.phase !== 'question' || state.myAnswer !== null || i >= state.question.options.length) return;
+  if ($('#room').classList.contains('hidden')) return;
   state.myAnswer = i; render();   // optimistic lock-in
   act('answer', { option: i });
 }
 
 $('#room').addEventListener('click', e => {
   const opt = e.target.closest('[data-opt]'); if (opt) return choose(Number(opt.dataset.opt));
+  if (e.target.closest('[data-board]')) return showBoard();
   const btn = e.target.closest('[data-act]'); if (btn) { btn.disabled = true; act(btn.dataset.act); }
 });
 document.addEventListener('keydown', e => {
@@ -433,7 +606,8 @@ document.addEventListener('keydown', e => {
   if (n) choose(n - 1);
 });
 
-initHome().then(() => { if (session) connect(); });
+show(auth ? 'home' : 'auth');
+initHome().then(() => { if (session && auth) connect(); });
 </script>
 </body>
 </html>

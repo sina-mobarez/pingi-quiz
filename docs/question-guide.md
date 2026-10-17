@@ -19,8 +19,8 @@ Run `npm run check-questions` after you edit a file. The server also checks ever
 
 - `answer` is the correct option, written as text. It is not an index.
 - `distractors` must contain **7 or more** wrong options, ordered **most plausible first**. A room with 4 options always shows the first 2 distractors plus one more picked at random; a room with 6 options shows the first 3 plus two at random; a room with 8 options shows the first 7. Put the distractors that are hardest to rule out at the top of the list.
-- `code` (optional) is a snippet shown left-to-right in a code block. `explanation` (optional) appears after the answer is revealed.
-- An `id` is `<prefix>-<e|m|h>-<nn>` and must be unique across every file.
+- `code` (optional) is a snippet shown left-to-right in a code block. IQ questions use it for symbol or number grids, one row per line with `?` for the missing cell. `explanation` (optional) appears after the answer is revealed.
+- An `id` is `<prefix>-<e|m|h|x>-<nn>` (`x` = expert) and must be unique across every file.
 
 ## What makes a good question
 
@@ -30,7 +30,7 @@ Run `npm run check-questions` after you edit a file. The server also checks ever
 4. **Maths and logic:** build the distractors from common mistakes, such as the wrong order of operations, an off-by-one error, adding where you should multiply, forgetting to divide by 2, calculating a percentage of the wrong base, or a sign error. Every option must be a number written in the same format.
 5. **Facts must be verified and stable.** Leave out anything you aren't sure of, along with records that are likely to change and phrasing like "currently". For recent facts, state the year, e.g. «در جام جهانی ۲۰۲۲». Avoid contested political or religious topics.
 6. **Don't use "all of the above" or "none of the above"**, and avoid negative questions unless the word «نیست» is bold-obvious in the sentence.
-7. **Difficulty:** _easy_ means most people know it, _medium_ needs some interest in the topic, and _hard_ is for enthusiasts or experts. A hard question gets hard distractors (near misses), not just a more obscure answer.
+7. **Difficulty:** _easy_ means most people know it, _medium_ needs some interest in the topic, _hard_ is for enthusiasts, and _expert_ is harder still: precise facts, multi-step reasoning and near-miss distractors. A hard or expert question gets hard distractors (near misses), not just a more obscure answer.
 8. **Variety:** within a category, cover different sub-topics and question shapes (who, when, where, how many, which one, cause → effect, odd one out stated positively, short scenarios). Don't write near-duplicates that only swap one name.
 
 ## Persian style
@@ -45,7 +45,7 @@ Run `npm run check-questions` after you edit a file. The server also checks ever
 
 `npm run check-questions` (and server start-up) rejects a question that:
 - is missing a field, has a bad difficulty or a duplicate id, or has fewer than 7 distractors;
-- has duplicate options, comparing them after normalising spacing, ZWNJ, case, letter forms and digits;
+- has duplicate options, comparing them after removing spaces and ZWNJ and normalising letter forms and digits (case counts: `-r` and `-R` differ);
 - uses "all/none of the above" style options or Arabic letter forms;
 - has a numeric answer with non-numeric distractors (or the reverse), or mixes Persian and Latin digits;
 - has an answer that stands out by script (e.g. the only Latin option) or by length (much longer or shorter than every distractor).

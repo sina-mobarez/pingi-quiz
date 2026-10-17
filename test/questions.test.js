@@ -79,7 +79,8 @@ test('every real question builds 4, 6 and 8 unique options with one correct answ
 test('question texts are not repeated', () => {
   const seen = new Map();
   for (const q of bank) {
-    const key = normalize(q.question);
+    // Puzzles may share a prompt ("what replaces the ?") as long as the grid differs.
+    const key = normalize(q.question + (q.code || ''));
     assert.ok(!seen.has(key), `${q.id} repeats ${seen.get(key)}`);
     seen.set(key, q.id);
   }

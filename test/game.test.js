@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { RoomManager, GameError, COUNTDOWN_MS, REVEAL_MS, HOST_GRACE_MS } = require('../game');
+const { RoomManager, GameError, COUNTDOWN_MS, REVEAL_MS, HOST_GRACE_MS, STREAK_STEP, STREAK_MAX_BONUS } = require('../game');
 
 const q = (id, category, difficulty, extra = {}) => ({
   id, category, difficulty, question: `q-${id}`, answer: `right-${id}`,
@@ -38,7 +38,7 @@ const correctIndex = (m, code) => m._room(code).questions[m._room(code).index].a
 
 test('categories lists counts per difficulty', () => {
   const cats = mgr().categories();
-  assert.deepEqual(cats.find(c => c.name === 'Programming').counts, { easy: 2, medium: 1, hard: 1 });
+  assert.deepEqual(cats.find(c => c.name === 'Programming').counts, { easy: 2, medium: 1, hard: 1, expert: 0 });
   assert.ok(cats.find(c => c.name === 'Other'));
 });
 
@@ -51,13 +51,15 @@ test('createRoom validates input', () => {
   assert.throws(() => m.createRoom(opts({ optionCount: 5 }), 0), /۴، ۶ یا ۸/);
 });
 
-test('join rules: unique names, unknown room, closed after start', () => {
+test('join rules: same name rejoins, unknown room, closed to newcomers after start', () => {
   const ctx = setup();
   const { m, code } = ctx;
-  assert.throws(() => m.joinRoom(code, 'bob', 0), /گرفته شده/);
+  assert.equal(m.joinRoom(code, 'bob', 0).playerId, ctx.p2);
+  assert.equal(m._room(code).players.size, 2);
   assert.throws(() => m.joinRoom('ZZZZ', 'Al', 0), e => e.status === 404);
   startRace(ctx);
   assert.throws(() => m.joinRoom(code, 'Late', 0), /شروع شده/);
+  assert.equal(m.joinRoom(code, 'Bob', 0).playerId, ctx.p2);
 });
 
 test('only host can start', () => {
@@ -143,10 +145,16 @@ test('timeout moves to reveal, then next question, then final', () => {
   assert.equal(s.phase, 'question');
   assert.equal(s.question.index, 1);
   t += 10_000; m.tick(t);
-  t += REVEAL_MS; m.tick(t);
+  t += REVEAL_MS;
+  const { finished } = m.tick(t);
   s = m.publicState(code, host, t);
   assert.equal(s.phase, 'final');
   assert.ok(s.reveal === null);
+  assert.deepEqual(finished, [{ code, results: [
+    { name: 'Bob', score: 0, correctCount: 0, total: 2, rank: 1, bestStreak: 0 },
+    { name: 'Host', score: 0, correctCount: 0, total: 2, rank: 2, bestStreak: 0 },
+  ] }]);
+  assert.deepEqual(m.tick(t + 1).finished, []);
 });
 
 test('disconnected players do not block early reveal', () => {
@@ -296,4 +304,75 @@ test('play again prefers questions the room has not seen yet', () => {
   m.restart(code, playerId, 0);
   const second = m._room(code).questions.map(p => p.id);
   assert.equal(new Set([...first, ...second]).size, 6);
+});
+
+const streakBank = Array.from({ length: 10 }, (_, i) => q(`s${i}`, 'Streak', 'easy'));
+
+test('answers in a row earn a growing, capped streak bonus; a miss resets it', () => {
+  const m = new RoomManager(streakBank, { rng: () => 0 });
+  const { code, playerId: host } = m.createRoom(opts({ category: 'Streak', count: 10 }), 0);
+  m.setConnected(code, host, true, 0);
+  let t = startRace({ m, code, host });
+  const bonuses = [];
+  for (let i = 0; i < 9; i++) {
+    const right = correctIndex(m, code);
+    m.answer(code, host, i === 7 ? (right + 1) % 4 : right, t);
+    const me = m.publicState(code, host, t).players[0];
+    bonuses.push(me.lastBonus);
+    t += REVEAL_MS; m.tick(t);
+  }
+  assert.deepEqual(bonuses, [0, 50, 100, 150, 200, 250, 250, 0, 0]);
+  assert.equal(STREAK_STEP, 50);
+  assert.equal(STREAK_MAX_BONUS, 250);
+  assert.equal(m._room(code).players.get(host).bestStreak, 7);
+  // Every answer was instant (1000 points), one of nine was wrong.
+  assert.equal(m._room(code).players.get(host).score, 8 * 1000 + bonuses.reduce((x, y) => x + y));
+});
+
+test('timing out breaks a streak; the streak stays hidden while a question is open', () => {
+  const ctx = setup({ count: 3 });
+  const { m, code, host, p2 } = ctx;
+  let t = startRace(ctx);
+  m.answer(code, host, correctIndex(m, code), t);
+  m.answer(code, p2, correctIndex(m, code), t);
+  t += REVEAL_MS; m.tick(t);
+  m.answer(code, p2, correctIndex(m, code), t);
+  const during = m.publicState(code, host, t).players.find(p => p.name === 'Bob');
+  assert.equal(during.streak, 1);
+  t += 10_000; m.tick(t);   // host never answers
+  const s = m.publicState(code, host, t);
+  assert.equal(s.players.find(p => p.name === 'Bob').streak, 2);
+  assert.equal(s.players.find(p => p.name === 'Host').streak, 0);
+});
+
+test('reveal names the fastest correct answer and shows rank movement', () => {
+  const ctx = setup({ count: 2 });
+  const { m, code, host, p2 } = ctx;
+  let t = startRace(ctx);
+  const right = correctIndex(m, code);
+  m.answer(code, p2, (right + 1) % 4, t);
+  m.answer(code, host, right, t + 2000);
+  let s = m.publicState(code, host, t + 2000);
+  assert.equal(s.reveal.fastest, host);
+  assert.ok(s.players.every(p => p.move === null));   // nothing to compare on the first question
+  t += 2000 + REVEAL_MS; m.tick(t);
+  m.answer(code, p2, correctIndex(m, code), t);
+  m.answer(code, host, (correctIndex(m, code) + 1) % 4, t + 100);
+  s = m.publicState(code, host, t + 100);
+  assert.equal(s.reveal.fastest, p2);
+  assert.equal(s.players.find(p => p.name === 'Bob').move, 1);
+  assert.equal(s.players.find(p => p.name === 'Host').move, -1);
+});
+
+test('rating changes show on the final screen and clear on restart', () => {
+  const ctx = setup({ count: 1 });
+  const { m, code, host } = ctx;
+  let t = startRace(ctx);
+  t += 10_000 + REVEAL_MS; m.tick(t - REVEAL_MS); m.tick(t);
+  m.setRatings(code, { Host: { rating: 1016, delta: 16 } });
+  const s = m.publicState(code, host, t);
+  assert.deepEqual(s.players.find(p => p.name === 'Host').rating, { rating: 1016, delta: 16 });
+  assert.equal(s.players.find(p => p.name === 'Bob').rating, null);
+  m.restart(code, host, t);
+  assert.ok(m.publicState(code, host, t).players.every(p => p.rating === null));
 });

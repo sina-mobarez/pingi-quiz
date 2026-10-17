@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DIFFICULTIES = ['easy', 'medium', 'hard'];
+const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'];
 const OPTION_COUNTS = [4, 6, 8];
 const MAX_OPTIONS = Math.max(...OPTION_COUNTS);
 
@@ -12,15 +12,13 @@ const ARABIC_LETTERS = /[يكة]/; // Persian text uses ی and ک
 const PERSIAN_DIGITS = /[۰-۹]/;
 const LATIN_DIGITS = /[0-9]/;
 
-// Same text up to spacing, ZWNJ, case, Arabic/Persian letter forms and digit script.
+// Same text up to spacing, ZWNJ, Arabic/Persian letter forms and digit script.
+// Case is kept: `mkdir -r` and `mkdir -R` are different commands.
 function normalize(s) {
   return String(s)
-    .replace(/[‌‏‎]/g, '')
+    .replace(/[\s‌‏‎]+/g, '')
     .replace(/ي/g, 'ی').replace(/ك/g, 'ک')
-    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
 }
 
 function script(s) {
@@ -113,7 +111,7 @@ function loadFiles(files) {
       }
     }
   }
-
+  if (errors.length) throw new Error(`Invalid questions:\n  ${errors.join('\n  ')}`);
   return all;
 }
 
